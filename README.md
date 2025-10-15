@@ -51,6 +51,45 @@ All configuration via environment variables (see `.env.example`).
 
 ## Local Development
 
+### Setup Virtual Environment
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate  # Linux/Mac
+# or
+venv\Scripts\activate  # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Using Makefile (Recommended)
+
+```bash
+# Show all available commands
+make help
+
+# Create venv and install dependencies
+make venv
+source venv/bin/activate
+make install
+
+# Run tests
+make test
+
+# Run tests with coverage
+make test-cov
+
+# Run linting
+make lint
+
+# Run application locally
+make run
+```
+
 ### Build and run with Docker
 
 ```bash
