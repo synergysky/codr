@@ -137,15 +137,29 @@ The project includes three automated workflows:
    - Validates Docker image builds on PRs
    - Uses Docker layer caching for speed
 
-### Required GitHub Secrets
+### Required GitHub Environments
 
-Add these secrets in your GitHub repo settings (Settings → Secrets and variables → Actions):
+Set up two environments for deployment (Settings → Environments):
 
-| Secret | Description | How to get |
-|--------|-------------|------------|
-| `RAILWAY_TOKEN` | Railway API token | Railway Dashboard → Account Settings → Tokens |
-| `RAILWAY_PROJECT_ID_DEV` | Railway project ID (dev) | Railway project → Settings → copy Project ID |
-| `RAILWAY_PROJECT_ID_PROD` | Railway project ID (prod) | Create separate Railway project for production |
+#### Development Environment
+1. Create environment named `development`
+2. Deployment branches: `develop` only
+3. Add secrets:
+   - `RAILWAY_TOKEN` - Railway API token
+   - `RAILWAY_PROJECT_ID` - Dev Railway project ID
+4. Add variables:
+   - `RAILWAY_URL` - Dev Railway URL
+
+#### Production Environment
+1. Create environment named `production`
+2. Deployment branches: `main` only
+3. **Enable protection rules:**
+   - ✅ Required reviewers (add yourself)
+4. Add secrets:
+   - `RAILWAY_TOKEN` - Railway API token
+   - `RAILWAY_PROJECT_ID` - Prod Railway project ID
+5. Add variables:
+   - `RAILWAY_URL` - Prod Railway URL
 
 ## Railway Deployment
 

@@ -82,14 +82,48 @@ This directory contains CI/CD workflows for the Codr project.
 3. Copy the Project ID (format: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`)
 4. Repeat for both dev and production projects
 
-### Add to GitHub
-1. Go to your GitHub repo
-2. Settings → Secrets and variables → Actions
-3. Click "New repository secret"
-4. Add each secret:
-   - Name: `RAILWAY_TOKEN`, Value: `<your-token>`
-   - Name: `RAILWAY_PROJECT_ID_DEV`, Value: `<dev-project-id>`
-   - Name: `RAILWAY_PROJECT_ID_PROD`, Value: `<prod-project-id>`
+### Required GitHub Environments
+
+Create two environments in your GitHub repo (Settings → Environments):
+
+#### 1. `development` Environment
+- **Deployment branches:** `develop` only
+- **Protection rules:** None (auto-deploy)
+- **Secrets:**
+  - `RAILWAY_TOKEN` - Railway API token
+  - `RAILWAY_PROJECT_ID` - Dev Railway project ID
+- **Variables:**
+  - `RAILWAY_URL` - Your Railway dev URL (e.g., `https://codr-dev.up.railway.app`)
+
+#### 2. `production` Environment
+- **Deployment branches:** `main` only
+- **Protection rules (recommended):**
+  - Required reviewers: Add yourself
+  - Wait timer: 0 minutes (or add delay if desired)
+- **Secrets:**
+  - `RAILWAY_TOKEN` - Railway API token (same as dev)
+  - `RAILWAY_PROJECT_ID` - Prod Railway project ID
+- **Variables:**
+  - `RAILWAY_URL` - Your Railway prod URL (e.g., `https://codr.up.railway.app`)
+
+### Setup Steps
+
+1. **Create Environments:**
+   - Go to GitHub repo → Settings → Environments
+   - Click "New environment"
+   - Create `development` and `production` environments
+   - Configure deployment branches and protection rules as above
+
+2. **Add Secrets to Each Environment:**
+   - Click on environment name
+   - Add environment secrets:
+     - `RAILWAY_TOKEN`
+     - `RAILWAY_PROJECT_ID`
+
+3. **Add Variables to Each Environment:**
+   - In same environment settings
+   - Add environment variables:
+     - `RAILWAY_URL`
 
 ---
 
