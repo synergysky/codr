@@ -139,9 +139,17 @@ git push -u origin feature/your-feature-name
 
 Create a Pull Request on GitHub:
 - Base: `develop`
-- Title: Clear description of changes
+- Title: Must follow format: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, or `hotfix:`
 - Description: Link to issue, explain what/why/how
 - Request review from team
+
+**Automated Checks:**
+- ✅ Branch name validation (must be `feature/*`, `hotfix/*`, etc.)
+- ✅ PR title validation (must follow commit convention)
+- ✅ Linting (ruff + mypy)
+- ✅ Tests with 80% coverage requirement
+- ✅ Docker build validation
+- 📊 Coverage report posted as PR comment
 
 ### 6. After PR Approval
 

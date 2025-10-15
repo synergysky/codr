@@ -116,6 +116,51 @@ curl -X POST "http://localhost:8000/webhook/zenhub?token=secret" \
   -d '{"type":"issue.transfer","issue_number":123}'
 ```
 
+## CI/CD
+
+### GitHub Actions Workflows
+
+The project includes three automated workflows:
+
+1. **Test** (`.github/workflows/test.yml`)
+   - Runs on PRs and pushes to `develop`/`main`
+   - Executes linting (ruff, mypy)
+   - Runs pytest with coverage reporting
+   - Uploads coverage to Codecov
+
+2. **Deploy to Railway** (`.github/workflows/deploy-railway.yml`)
+   - Auto-deploys `develop` → Railway dev environment
+   - Auto-deploys `main` → Railway production environment
+   - Manual trigger via `workflow_dispatch`
+
+3. **Docker Build** (`.github/workflows/docker-build.yml`)
+   - Validates Docker image builds on PRs
+   - Uses Docker layer caching for speed
+
+### Required GitHub Environments
+
+Set up two environments for deployment (Settings → Environments):
+
+#### Development Environment
+1. Create environment named `development`
+2. Deployment branches: `develop` only
+3. Add secrets:
+   - `RAILWAY_TOKEN` - Railway API token
+   - `RAILWAY_PROJECT_ID` - Dev Railway project ID
+4. Add variables:
+   - `RAILWAY_URL` - Dev Railway URL
+
+#### Production Environment
+1. Create environment named `production`
+2. Deployment branches: `main` only
+3. **Enable protection rules:**
+   - ✅ Required reviewers (add yourself)
+4. Add secrets:
+   - `RAILWAY_TOKEN` - Railway API token
+   - `RAILWAY_PROJECT_ID` - Prod Railway project ID
+5. Add variables:
+   - `RAILWAY_URL` - Prod Railway URL
+
 ## Railway Deployment
 
 ### 1. Push to GitHub
