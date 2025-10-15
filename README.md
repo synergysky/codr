@@ -116,6 +116,37 @@ curl -X POST "http://localhost:8000/webhook/zenhub?token=secret" \
   -d '{"type":"issue.transfer","issue_number":123}'
 ```
 
+## CI/CD
+
+### GitHub Actions Workflows
+
+The project includes three automated workflows:
+
+1. **Test** (`.github/workflows/test.yml`)
+   - Runs on PRs and pushes to `develop`/`main`
+   - Executes linting (ruff, mypy)
+   - Runs pytest with coverage reporting
+   - Uploads coverage to Codecov
+
+2. **Deploy to Railway** (`.github/workflows/deploy-railway.yml`)
+   - Auto-deploys `develop` → Railway dev environment
+   - Auto-deploys `main` → Railway production environment
+   - Manual trigger via `workflow_dispatch`
+
+3. **Docker Build** (`.github/workflows/docker-build.yml`)
+   - Validates Docker image builds on PRs
+   - Uses Docker layer caching for speed
+
+### Required GitHub Secrets
+
+Add these secrets in your GitHub repo settings (Settings → Secrets and variables → Actions):
+
+| Secret | Description | How to get |
+|--------|-------------|------------|
+| `RAILWAY_TOKEN` | Railway API token | Railway Dashboard → Account Settings → Tokens |
+| `RAILWAY_PROJECT_ID_DEV` | Railway project ID (dev) | Railway project → Settings → copy Project ID |
+| `RAILWAY_PROJECT_ID_PROD` | Railway project ID (prod) | Create separate Railway project for production |
+
 ## Railway Deployment
 
 ### 1. Push to GitHub
