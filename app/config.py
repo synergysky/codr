@@ -77,4 +77,18 @@ class Settings(BaseSettings):
         return [w.strip() for w in self.ZENHUB_WORKSPACE_IDS.split(",") if w.strip()]
 
 
-settings = Settings()
+def get_settings() -> Settings:
+    """Factory function to get settings instance.
+    
+    This allows for lazy initialization and easier testing.
+    """
+    return Settings()
+
+
+# Global settings instance for convenience
+# Note: This will fail if required env vars are not set
+try:
+    settings = Settings()
+except Exception:
+    # In test environment, settings will be mocked
+    settings = None  # type: ignore[assignment]

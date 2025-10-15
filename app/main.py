@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Request, HTTPException
-from .config import settings
+from fastapi import FastAPI, Request, HTTPException, Depends
+from .config import Settings, get_settings
 from .github_client import repository_dispatch
 import logging
 
@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Zenhub → GitHub Automation", version="0.1.0")
 
 @app.get("/health")
-async def health():
+async def health(settings: Settings = Depends(get_settings)):
     return {
         "status": "ok",
         "mode": settings.MODE,
@@ -18,7 +18,7 @@ async def health():
     }
 
 @app.post("/webhook/zenhub")
-async def zenhub_webhook(request: Request):
+async def zenhub_webhook(request: Request, settings: Settings = Depends(get_settings)):
     """
     Receives Zenhub webhook events and dispatches to configured GitHub repos.
     
@@ -53,7 +53,7 @@ async def zenhub_webhook(request: Request):
     for repo_full in repos:
         owner, repo = repo_full.split("/", 1)
         try:
-            await repository_dispatch(owner, repo, settings.DISPATCH_EVENT, {"zenhub": payload})
+            await repository_dispatch(owner, repo, settings.DISPATCH_EVENT, {"zenhub": payload}, settings.GITHUB_TOKEN)
             results.append({"repo": repo_full, "status": "dispatched"})
             logger.info(f"Dispatched to {repo_full}")
         except Exception as e:
