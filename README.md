@@ -16,11 +16,16 @@ Automatically creates branches and draft pull requests when issues are moved to 
 
 - ✅ Multi-repo support (comma-separated `GITHUB_REPOS`)
 - ✅ Multi-workspace support (Zenhub workspaces)
+- ✅ Webhook security with token validation
+- ✅ **GitHub issue enrichment** (labels, body, assignees, milestone)
+- ✅ **Zenhub issue enrichment** (estimate, pipeline, epic info)
+- ✅ Form-encoded webhook data parsing
 - ✅ Pydantic 2 config with validation
 - ✅ Docker container with healthcheck
 - ✅ Railway-ready (auto PORT binding)
+- ✅ 92% test coverage
 - 🚧 Branch naming: `feature/{issue-number}-{slug}` or `hotfix/{issue-number}-{slug}`
-- 🚧 Draft PR with Zenhub metadata
+- 🚧 Draft PR with full issue context
 - 🚧 Idempotency (skip if branch/PR exists)
 
 ## Configuration
