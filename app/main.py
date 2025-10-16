@@ -101,15 +101,23 @@ async def zenhub_webhook(
         raise HTTPException(status_code=400, detail="invalid payload")
 
     logger.info(f"Received Zenhub webhook: {payload.get('type', 'unknown')}")
+    logger.debug(f"Raw payload: {payload}")
 
     # Enrich payload using service layer
     enriched_payload = await webhook_service.process_webhook(payload)
+    logger.debug(f"Enriched payload keys: {list(enriched_payload.keys())}")
 
     # Handle automatic PR creation for issues moved to In Progress
     pr_result = None
     if enriched_payload.get("organization") and enriched_payload.get("repo"):
         owner = enriched_payload["organization"]
         repo_name = enriched_payload["repo"]
+        logger.info(
+            f"Attempting PR creation for {owner}/{repo_name}, "
+            f"type={enriched_payload.get('type')}, "
+            f"to_pipeline={enriched_payload.get('to_pipeline_name')}, "
+            f"has_assignees={bool(enriched_payload.get('github_issue', {}).get('assignees'))}"
+        )
         pr_result = await pr_service.handle_issue_moved(enriched_payload, owner, repo_name)
         if pr_result:
             logger.info(f"Created PR: {pr_result}")

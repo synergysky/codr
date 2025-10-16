@@ -35,15 +35,21 @@ class PRService:
         Returns:
             True if PR should be created
         """
-        # Check if it's an issue.transfer event
-        if payload.get("type") != "issue.transfer":
-            logger.debug(f"Skipping PR creation: event type is {payload.get('type')}")
+        # Check if it's an issue transfer event
+        # Zenhub might send "issue.transfer" or "issue_transfer"
+        event_type = payload.get("type", "")
+        if event_type not in ["issue.transfer", "issue_transfer"]:
+            logger.info(
+                f"Skipping PR creation: event type is '{event_type}' (expected 'issue.transfer' or 'issue_transfer')"
+            )
             return False
 
         # Check if issue is moved to "In Progress"
         to_pipeline = payload.get("to_pipeline_name", "")
         if to_pipeline.lower() != "in progress":
-            logger.debug(f"Skipping PR creation: pipeline is '{to_pipeline}'")
+            logger.info(
+                f"Skipping PR creation: pipeline is '{to_pipeline}' (expected 'In Progress')"
+            )
             return False
 
         # Check if issue has assignees
@@ -53,6 +59,7 @@ class PRService:
             logger.info("Skipping PR creation: no assignees")
             return False
 
+        logger.info("✅ All conditions met for PR creation!")
         return True
 
     def _generate_branch_name(self, issue_number: int, title: str) -> str:
