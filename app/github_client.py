@@ -1,6 +1,41 @@
 import httpx
 
 
+async def get_repository_id(
+    owner: str,
+    repo: str,
+    github_token: str
+) -> int:
+    """Fetch repository ID from GitHub API.
+
+    Args:
+        owner: Repository owner (org or user)
+        repo: Repository name
+        github_token: GitHub authentication token
+
+    Returns:
+        Repository ID
+
+    Raises:
+        httpx.HTTPStatusError: If GitHub API returns an error
+    """
+    if not github_token:
+        raise RuntimeError("GITHUB_TOKEN is not set")
+
+    url = f"https://api.github.com/repos/{owner}/{repo}"
+    headers = {
+        "Authorization": f"token {github_token}",
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "zenhub-bot/relay",
+    }
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.get(url, headers=headers)
+        resp.raise_for_status()
+        data = resp.json()
+        return data['id']  # type: ignore[no-any-return]
+
+
 async def get_issue_details(
     owner: str,
     repo: str,

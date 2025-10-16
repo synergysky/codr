@@ -4,7 +4,8 @@ from urllib.parse import parse_qs
 from fastapi import Depends, FastAPI, HTTPException, Request
 
 from .config import Settings, get_settings
-from .github_client import get_issue_details, repository_dispatch
+from .github_client import get_issue_details, get_repository_id, repository_dispatch
+from .zenhub_client import get_issue_data
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -58,17 +59,20 @@ async def zenhub_webhook(request: Request, settings: Settings = Depends(get_sett
     logger.info(f"Received Zenhub webhook: {payload.get('type', 'unknown')}")
     logger.info(f"Full payload: {payload}")
 
-    # Enrich with GitHub issue data (labels, body, etc.)
+    # Enrich with GitHub and Zenhub issue data
     owner = payload.get('organization')
     repo = payload.get('repo')
     issue_number = payload.get('issue_number')
+    workspace_id = payload.get('workspace_id')
 
     if owner and repo and issue_number:
         # Ensure values are strings (not lists from parse_qs)
         owner_str = owner if isinstance(owner, str) else owner[0]
         repo_str = repo if isinstance(repo, str) else repo[0]
         issue_num_str = issue_number if isinstance(issue_number, str) else issue_number[0]
+        workspace_id_str = workspace_id if isinstance(workspace_id, str) else workspace_id[0] if workspace_id else None
 
+        # Fetch GitHub issue data
         try:
             issue_data = await get_issue_details(owner_str, repo_str, int(issue_num_str), settings.GITHUB_TOKEN)
             # Add GitHub issue details to payload
@@ -87,6 +91,29 @@ async def zenhub_webhook(request: Request, settings: Settings = Depends(get_sett
         except Exception as e:
             logger.warning(f"Failed to fetch GitHub issue details: {e}")
             # Continue without enrichment
+
+        # Fetch Zenhub issue data (if token is configured)
+        if settings.ZENHUB_TOKEN and workspace_id_str:
+            try:
+                # Get repo_id from GitHub API
+                repo_id = await get_repository_id(owner_str, repo_str, settings.GITHUB_TOKEN)
+                zenhub_data = await get_issue_data(
+                    workspace_id_str,
+                    repo_id,
+                    int(issue_num_str),
+                    settings.ZENHUB_TOKEN
+                )
+                # Add Zenhub issue details to payload
+                payload['zenhub_issue'] = {  # type: ignore[assignment]
+                    'estimate': zenhub_data.get('estimate', {}).get('value'),
+                    'pipeline': zenhub_data.get('pipeline', {}).get('name'),
+                    'is_epic': zenhub_data.get('is_epic', False),
+                    'epic': zenhub_data.get('epic'),
+                }
+                logger.info(f"Enriched with Zenhub issue data: estimate={zenhub_data.get('estimate', {}).get('value')}, pipeline={zenhub_data.get('pipeline', {}).get('name')}")
+            except Exception as e:
+                logger.warning(f"Failed to fetch Zenhub issue details: {e}")
+                # Continue without Zenhub enrichment
 
     # TODO: Filter for specific event types (e.g., issue.transfer, pipeline move)
     # For now, forward all events to repos
