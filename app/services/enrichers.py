@@ -138,7 +138,7 @@ class ZenhubEnricher:
 
             # Get Zenhub issue data
             zenhub_data = await self.zenhub_client.get_issue_data(
-                workspace_id_str, repo_id, int(issue_num_str)
+                workspace_id_str, repo_id, int(issue_num_str), self.zenhub_token
             )
 
             # Format and add to payload

@@ -215,7 +215,7 @@ class TestZenhubEnricher:
         )
 
         # Verify Zenhub API was called
-        mock_zenhub_client.get_issue_data.assert_called_once_with("ws123", 12345, 123)
+        mock_zenhub_client.get_issue_data.assert_called_once_with("ws123", 12345, 123, "test_token")
 
         # Verify enriched data
         assert "zenhub_issue" in result

@@ -22,6 +22,9 @@ class TestWebhookToPRFlow:
         client.create_branch = AsyncMock(
             return_value={"ref": "refs/heads/feature/123-add-new-feature"}
         )
+        client.create_file = AsyncMock(
+            return_value={"content": {"sha": "abc123"}, "commit": {"sha": "def456"}}
+        )
         client.create_pull_request = AsyncMock(
             return_value={
                 "number": 42,
@@ -42,7 +45,7 @@ class TestWebhookToPRFlow:
     async def test_issue_moved_to_in_progress_creates_pr(
         self, mock_github_client: AsyncMock, mock_zenhub_client: AsyncMock
     ) -> None:
-        """Test that moving issue to In Progress with assignees creates PR."""
+        """Test that moving issue to In Progress creates PR (with or without assignees)."""
         from app.services.enrichers import GitHubEnricher, ZenhubEnricher
         from app.services.pr_service import PRService
         from app.services.webhook_service import WebhookService
@@ -83,6 +86,7 @@ class TestWebhookToPRFlow:
 
         # Verify GitHub API calls
         mock_github_client.create_branch.assert_called_once()
+        mock_github_client.create_file.assert_called_once()  # Context file created
         mock_github_client.create_pull_request.assert_called_once()
 
         # Verify PR details
@@ -93,10 +97,10 @@ class TestWebhookToPRFlow:
         assert "OAuth2 authentication" in pr_call[1]["body"]
 
     @pytest.mark.asyncio
-    async def test_issue_without_assignees_skips_pr(
+    async def test_issue_without_assignees_creates_pr(
         self, mock_github_client: AsyncMock, mock_zenhub_client: AsyncMock
     ) -> None:
-        """Test that issues without assignees don't create PRs."""
+        """Test that issues without assignees still create PRs."""
         from app.services.pr_service import PRService
 
         # Mock GitHub to return issue without assignees
@@ -113,9 +117,11 @@ class TestWebhookToPRFlow:
 
         result = await pr_service.handle_issue_moved(payload, "testorg", "testrepo")
 
-        assert result is None
-        mock_github_client.create_branch.assert_not_called()
-        mock_github_client.create_pull_request.assert_not_called()
+        # PR should be created even without assignees
+        assert result is not None
+        mock_github_client.create_branch.assert_called_once()
+        mock_github_client.create_file.assert_called_once()
+        mock_github_client.create_pull_request.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_issue_moved_to_done_skips_pr(
@@ -171,7 +177,11 @@ class TestWebhookToPRFlow:
         raw_payload = zenhub_webhooks.issue_transfer_to_in_progress()
         enriched = await webhook_service.process_webhook(raw_payload)
 
-        await pr_service.handle_issue_moved(enriched, "testorg", "testrepo")
+        result = await pr_service.handle_issue_moved(enriched, "testorg", "testrepo")
+
+        # Verify PR was created
+        assert result is not None
+        mock_github_client.create_file.assert_called_once()
 
         pr_call = mock_github_client.create_pull_request.call_args
         body = pr_call[1]["body"]
