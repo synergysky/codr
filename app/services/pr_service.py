@@ -84,7 +84,10 @@ class PRService:
         """
         # Sanitize title for branch name
         sanitized = title.lower()
-        sanitized = "".join(c if c.isalnum() or c in " -" else "" for c in sanitized)
+        # Remove non-ASCII characters and keep only alphanumeric, spaces, and hyphens
+        sanitized = "".join(
+            c if (c.isalnum() and ord(c) < 128) or c in " -" else "" for c in sanitized
+        )
         sanitized = "-".join(sanitized.split())[:50]  # Limit length
 
         return f"feature/{issue_number}-{sanitized}"
@@ -120,13 +123,24 @@ class PRService:
         # Labels
         labels = github_issue.get("labels", [])
         if labels:
-            label_names = [label["name"] for label in labels if isinstance(label, dict)]
-            lines.append("## Labels")
-            lines.append(", ".join(f"`{label}`" for label in label_names))
-            lines.append("")
+            label_names = []
+            for label in labels:
+                if isinstance(label, dict) and "name" in label:
+                    label_names.append(label["name"])
+                elif isinstance(label, str):
+                    label_names.append(label)
+            if label_names:
+                lines.append("## Labels")
+                lines.append(", ".join(f"`{label}`" for label in label_names))
+                lines.append("")
 
         # Zenhub info
-        estimate = zenhub_issue.get("estimate", {}).get("value")
+        estimate_data = zenhub_issue.get("estimate")
+        estimate = None
+        if isinstance(estimate_data, dict):
+            estimate = estimate_data.get("value")
+        elif isinstance(estimate_data, (int, float)):
+            estimate = estimate_data
         if estimate:
             lines.append(f"**Estimate:** {estimate} points")
             lines.append("")
@@ -134,15 +148,26 @@ class PRService:
         # Assignees
         assignees = github_issue.get("assignees", [])
         if assignees:
-            assignee_logins = [a.get("login") for a in assignees if a.get("login")]
-            lines.append("## Assignees")
-            lines.append(", ".join(f"@{login}" for login in assignee_logins))
-            lines.append("")
+            assignee_logins = []
+            for a in assignees:
+                if isinstance(a, dict):
+                    login = a.get("login")
+                    if login:
+                        assignee_logins.append(login)
+                elif isinstance(a, str):
+                    assignee_logins.append(a)
+            if assignee_logins:
+                lines.append("## Assignees")
+                lines.append(", ".join(f"@{login}" for login in assignee_logins))
+                lines.append("")
 
         # Milestone
         milestone = github_issue.get("milestone")
         if milestone:
-            lines.append(f"**Milestone:** {milestone.get('title')}")
+            milestone_title = (
+                milestone.get("title") if isinstance(milestone, dict) else str(milestone)
+            )
+            lines.append(f"**Milestone:** {milestone_title}")
             lines.append("")
 
         return "\n".join(lines)

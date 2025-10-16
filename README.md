@@ -1,16 +1,17 @@
 # Zenhub → GitHub Automation Bot
 
-Automatically creates branches and draft pull requests when issues are moved to "In Progress" in Zenhub.
+Automatically creates branches and draft pull requests when issues are moved to "In Progress" in Zenhub **and** when assignees are added to issues already in progress.
 
 ## Architecture
 
-**Relay mode** (default):
-1. Zenhub webhook → FastAPI service (Railway)
-2. Service validates token and forwards to GitHub `repository_dispatch`
-3. GitHub Action in each repo creates branch + draft PR
+**Direct mode** (current):
+1. Zenhub webhook → FastAPI service (Railway) → Creates branch + draft PR
+2. GitHub webhook → FastAPI service (Railway) → Creates branch + draft PR
+3. Service enriches with data from GitHub + Zenhub APIs
 
-**Direct mode** (future):
-- Service creates branch and PR directly via GitHub API
+**Two triggers for maximum coverage:**
+- ✅ **Zenhub webhook** (`/webhook/zenhub`): Issue moved to "In Progress" → Check if has assignees → Create PR
+- ✅ **GitHub webhook** (`/webhook/github`): Assignee added to issue → Check if in "In Progress" → Create PR
 
 ## Features
 
@@ -19,13 +20,15 @@ Automatically creates branches and draft pull requests when issues are moved to 
 - ✅ Webhook security with token validation
 - ✅ **GitHub issue enrichment** (labels, body, assignees, milestone)
 - ✅ **Zenhub issue enrichment** (estimate, pipeline, epic info)
+- ✅ **Automatic branch creation** (`feature/{issue-number}-{sanitized-title}`)
+- ✅ **Draft PR with full context** (description, labels, assignees, estimate, milestone)
+- ✅ **Dual webhook support** (Zenhub + GitHub)
 - ✅ Form-encoded webhook data parsing
 - ✅ Pydantic 2 config with validation
 - ✅ Docker container with healthcheck
 - ✅ Railway-ready (auto PORT binding)
-- ✅ 92% test coverage
-- 🚧 Branch naming: `feature/{issue-number}-{slug}` or `hotfix/{issue-number}-{slug}`
-- 🚧 Draft PR with full issue context
+- ✅ 88% test coverage (53 tests: 48 unit + 5 integration)
+- ✅ SOLID principles + TDD methodology
 - 🚧 Idempotency (skip if branch/PR exists)
 
 ## Configuration
@@ -224,63 +227,99 @@ Should return:
 }
 ```
 
-## Zenhub Webhook Setup
+## Webhook Setup
+
+You need to configure **TWO webhooks** for full functionality:
+
+### 1. Zenhub Webhook
+
+Triggers when issues are moved between pipelines (e.g., to "In Progress").
 
 1. Go to Zenhub → Workspace Settings → Webhooks
 2. Add webhook:
    - **URL**: `https://your-app.up.railway.app/webhook/zenhub?token=<WEBHOOK_TOKEN>`
-   - **Events**: Select "Issue transferred" or all events
+   - **Events**: Select **all events** (service filters relevant ones; allows future expansion)
 3. Save
+
+**Note:** The service currently only acts on `issue_transfer` events to "In Progress", but receiving all events enables easy feature additions later.
+
+### 2. GitHub Webhook
+
+Triggers when assignees are added to issues.
+
+1. Go to GitHub repo → Settings → Webhooks → Add webhook
+2. Configure:
+   - **Payload URL**: `https://your-app.up.railway.app/webhook/github?token=<WEBHOOK_TOKEN>`
+   - **Content type**: `application/json`
+   - **Events**: Choose "Let me select individual events"
+     - ✅ Issues (all issue events - service filters for `assigned`)
+   - **Active**: ✅ Checked
+3. Add webhook
+
+**Note:** The service currently only acts on `issues.assigned` events, but receiving all issue events enables easy feature additions later.
 
 **Security note**: The `?token=` query param authenticates the webhook. Alternatively, send as header `x-webhook-token: <WEBHOOK_TOKEN>`.
 
-## GitHub Action Setup
+### Why Both Webhooks?
 
-Add this workflow to each repo in `GITHUB_REPOS`:
+| Scenario | Trigger | Webhook Source | Result |
+|----------|---------|----------------|--------|
+| Issue in Backlog → Moved to "In Progress" (already has assignees) | Pipeline change | Zenhub | ✅ PR created |
+| Issue in "In Progress" → Assignee added | Assignee change | GitHub | ✅ PR created |
+| Issue in Backlog → Assignee added | Assignee change | GitHub | ❌ No PR (not in progress) |
+| Issue moved to "Done" | Pipeline change | Zenhub | ❌ No PR (wrong pipeline) |
 
-`.github/workflows/zenhub-automation.yml`:
+Without **both** webhooks, you'll miss some scenarios!
 
-```yaml
-name: Zenhub → Draft PR
+## How It Works
 
-on:
-  repository_dispatch:
-    types: [zenhub_in_progress]
+When a PR is created, the service:
 
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+1. **Enriches issue data** from GitHub API (title, body, labels, assignees, milestone)
+2. **Enriches Zenhub data** via Zenhub API (estimate, pipeline, epic info)  
+3. **Creates a branch**: `feature/{issue-number}-{sanitized-title}` from `develop`
+4. **Creates a draft PR** with complete context:
+   ```markdown
+   Closes #123
+   
+   ## Issue Description
+   [Full issue body from GitHub]
+   
+   ## Labels
+   `bug`, `priority:high`
+   
+   **Estimate:** 8 points
+   
+   ## Assignees
+   @developer1, @developer2
+   
+   **Milestone:** v2.0
+   ```
 
-jobs:
-  create-branch-and-pr:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+### Example Flow
 
-      - name: Inspect payload
-        run: |
-          echo "Zenhub event received"
-          echo '${{ toJson(github.event.client_payload) }}'
-
-      # TODO: Add steps to:
-      # 1. Parse issue number and title from payload
-      # 2. Determine base branch (develop/hotfix/release)
-      # 3. Create branch via GitHub API
-      # 4. Create draft PR with metadata
-```
+1. Issue #456 "Add OAuth login" is in Backlog
+2. Developer moves it to "In Progress" 
+3. Zenhub webhook → Service checks: has assignees? ✅
+4. Service creates `feature/456-add-oauth-login` branch
+5. Service creates draft PR with full context
+6. Developer gets notification about new PR
 
 ## Roadmap
 
 - [x] Pydantic 2 config with multi-repo support
 - [x] Docker + Railway deployment
-- [x] Webhook relay to `repository_dispatch`
-- [ ] Parse Zenhub "moved to In Progress" events
-- [ ] GitHub Action to create branch + draft PR
-- [ ] Idempotency (skip if branch/PR exists)
-- [ ] PR body template with Zenhub metadata
-- [ ] Direct mode (GitHub App with JWT)
+- [x] Parse Zenhub "moved to In Progress" events
+- [x] GitHub + Zenhub data enrichment
+- [x] Automatic branch creation
+- [x] Draft PR with full metadata and context
+- [x] Dual webhook support (Zenhub + GitHub)
+- [x] SOLID principles + TDD (88% test coverage)
+- [x] Integration tests with realistic fixtures
+- [ ] Idempotency (skip if branch/PR already exists)
+- [ ] Configurable base branch per repo (develop/main/release)
+- [ ] Support for hotfix workflow (different base branch)
+- [ ] PR template customization
 - [ ] Release notes generation
 
 ## License
