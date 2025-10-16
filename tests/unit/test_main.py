@@ -148,7 +148,7 @@ class TestWebhookEndpoint:
                     "assignees": [],
                     "milestone": None
                 }
-                
+
                 response = test_client.post(
                     "/webhook/zenhub?token=test_webhook_secret",
                     data="type=issue_transfer&organization=testorg&repo=repo1&issue_number=1&to_pipeline_name=In Progress",

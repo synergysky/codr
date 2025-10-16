@@ -22,9 +22,10 @@ def get_webhook_service(settings: Settings = Depends(get_settings)) -> WebhookSe
     - main.py depends on abstractions (IssueEnricher protocol)
     - Concrete implementations injected here
     """
+    from collections.abc import Sequence
+
     from .services.protocols import IssueEnricher
-    from typing import Sequence
-    
+
     enrichers: Sequence[IssueEnricher] = [
         GitHubEnricher(
             github_client=github_client,

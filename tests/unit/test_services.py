@@ -1,10 +1,10 @@
 """Unit tests for service layer."""
-import pytest
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
-from app.services.webhook_service import WebhookService
+import pytest
+
 from app.services.enrichers import GitHubEnricher, ZenhubEnricher
+from app.services.webhook_service import WebhookService
 
 
 class TestWebhookService:
@@ -20,7 +20,7 @@ class TestWebhookService:
                 'labels': ['bug']
             }
         }
-        
+
         zenhub_enricher = AsyncMock()
         zenhub_enricher.enrich.return_value = {
             'zenhub_issue': {
@@ -28,7 +28,7 @@ class TestWebhookService:
                 'pipeline': 'In Progress'
             }
         }
-        
+
         return [github_enricher, zenhub_enricher]
 
     @pytest.fixture
@@ -70,7 +70,7 @@ class TestWebhookService:
     ) -> None:
         """Test that webhook service continues if one enricher fails."""
         payload = {'type': 'issue_transfer'}
-        
+
         # Make first enricher fail
         mock_enrichers[0].enrich.side_effect = Exception("API error")
 
@@ -88,7 +88,7 @@ class TestWebhookService:
     ) -> None:
         """Test that webhook service returns original payload if all enrichers fail."""
         payload = {'type': 'issue_transfer', 'issue_number': '123'}
-        
+
         # Make all enrichers fail
         for enricher in mock_enrichers:
             enricher.enrich.side_effect = Exception("API error")

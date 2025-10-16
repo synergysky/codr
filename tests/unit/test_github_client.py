@@ -1,6 +1,8 @@
 """Unit tests for GitHub client module."""
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
+
 from app.github_client import get_issue_details, repository_dispatch
 
 
@@ -19,9 +21,9 @@ class TestGetIssueDetails:
             "assignees": [{"login": "user1"}],
             "milestone": {"title": "v1.0"}
         }
-        
+
         from unittest.mock import MagicMock
-        
+
         mock_response = MagicMock()
         mock_response.json.return_value = mock_issue_data
         mock_response.raise_for_status = MagicMock()
