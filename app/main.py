@@ -36,6 +36,12 @@ async def zenhub_webhook(request: Request, settings: Settings = Depends(get_sett
         logger.warning("Unauthorized webhook attempt")
         raise HTTPException(status_code=401, detail="unauthorized")
 
+    # Parse JSON payload (handle empty body for ping events)
+    body = await request.body()
+    if not body:
+        logger.info("Received webhook ping (empty body)")
+        return {"ok": True, "message": "pong"}
+    
     try:
         payload = await request.json()
     except Exception as e:
@@ -43,6 +49,7 @@ async def zenhub_webhook(request: Request, settings: Settings = Depends(get_sett
         raise HTTPException(status_code=400, detail="invalid json")
 
     logger.info(f"Received Zenhub webhook: {payload.get('type', 'unknown')}")
+    logger.info(f"Full payload: {payload}")
 
     # TODO: Filter for specific event types (e.g., issue.transfer, pipeline move)
     # For now, forward all events to repos
