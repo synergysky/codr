@@ -134,3 +134,39 @@ class TestWebhookEndpoint:
         assert data["ok"] is True
         assert all(r["status"] == "failed" for r in data["results"])
         assert all("error" in r for r in data["results"])
+
+    def test_webhook_with_form_data(self, test_client: TestClient) -> None:
+        """Test webhook accepts form-encoded data from Zenhub."""
+        with patch("app.main.repository_dispatch", new_callable=AsyncMock):
+            with patch("app.main.get_issue_details", new_callable=AsyncMock) as mock_get_issue:
+                mock_get_issue.return_value = {
+                    "title": "Test Issue",
+                    "body": "Description",
+                    "labels": [{"name": "bug"}],
+                    "state": "open",
+                    "html_url": "https://github.com/org/repo/issues/1",
+                    "assignees": [],
+                    "milestone": None
+                }
+                
+                response = test_client.post(
+                    "/webhook/zenhub?token=test_webhook_secret",
+                    data="type=issue_transfer&organization=testorg&repo=repo1&issue_number=1&to_pipeline_name=In Progress",
+                    headers={"content-type": "application/x-www-form-urlencoded"}
+                )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["ok"] is True
+
+    def test_webhook_empty_body_returns_pong(self, test_client: TestClient) -> None:
+        """Test webhook returns pong for empty body (ping event)."""
+        response = test_client.post(
+            "/webhook/zenhub?token=test_webhook_secret",
+            data=b"",
+            headers={"content-type": "application/x-www-form-urlencoded"}
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["message"] == "pong"
