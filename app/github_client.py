@@ -1,11 +1,7 @@
 import httpx
 
 
-async def get_repository_id(
-    owner: str,
-    repo: str,
-    github_token: str
-) -> int:
+async def get_repository_id(owner: str, repo: str, github_token: str) -> int:
     """Fetch repository ID from GitHub API.
 
     Args:
@@ -33,15 +29,10 @@ async def get_repository_id(
         resp = await client.get(url, headers=headers)
         resp.raise_for_status()
         data = resp.json()
-        return data['id']  # type: ignore[no-any-return]
+        return data["id"]  # type: ignore[no-any-return]
 
 
-async def get_issue_details(
-    owner: str,
-    repo: str,
-    issue_number: int,
-    github_token: str
-) -> dict:
+async def get_issue_details(owner: str, repo: str, issue_number: int, github_token: str) -> dict:
     """Fetch issue details from GitHub API.
 
     Args:
@@ -73,11 +64,7 @@ async def get_issue_details(
 
 
 async def repository_dispatch(
-    owner: str,
-    repo: str,
-    event_type: str,
-    client_payload: dict,
-    github_token: str
+    owner: str, repo: str, event_type: str, client_payload: dict, github_token: str
 ) -> None:
     """Send repository_dispatch event to GitHub.
 

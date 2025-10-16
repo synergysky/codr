@@ -1,4 +1,5 @@
 """Unit tests for GitHub client module."""
+
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -19,7 +20,7 @@ class TestGetIssueDetails:
             "state": "open",
             "html_url": "https://github.com/owner/repo/issues/1",
             "assignees": [{"login": "user1"}],
-            "milestone": {"title": "v1.0"}
+            "milestone": {"title": "v1.0"},
         }
 
         from unittest.mock import MagicMock
@@ -33,10 +34,7 @@ class TestGetIssueDetails:
 
         with patch("app.github_client.httpx.AsyncClient", return_value=mock_client):
             result = await get_issue_details(
-                owner="owner",
-                repo="repo",
-                issue_number=1,
-                github_token="test_token"
+                owner="owner", repo="repo", issue_number=1, github_token="test_token"
             )
 
         assert result["title"] == "Test Issue"
@@ -48,12 +46,7 @@ class TestGetIssueDetails:
     async def test_get_issue_details_missing_token(self) -> None:
         """Test get_issue_details raises error when token is missing."""
         with pytest.raises(RuntimeError, match="GITHUB_TOKEN is not set"):
-            await get_issue_details(
-                owner="owner",
-                repo="repo",
-                issue_number=1,
-                github_token=""
-            )
+            await get_issue_details(owner="owner", repo="repo", issue_number=1, github_token="")
 
 
 class TestRepositoryDispatch:
@@ -74,7 +67,7 @@ class TestRepositoryDispatch:
                 repo="testrepo",
                 event_type="test_event",
                 client_payload={"test": "data"},
-                github_token="test_token"
+                github_token="test_token",
             )
 
         mock_client.__aenter__.return_value.post.assert_called_once()

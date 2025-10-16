@@ -1,4 +1,5 @@
 """Shared test fixtures and configuration."""
+
 from typing import Any
 
 import pytest

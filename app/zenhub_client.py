@@ -2,10 +2,7 @@ import httpx
 
 
 async def get_issue_data(
-    workspace_id: str,
-    repo_id: int,
-    issue_number: int,
-    zenhub_token: str
+    workspace_id: str, repo_id: int, issue_number: int, zenhub_token: str
 ) -> dict:
     """Fetch issue data from Zenhub API.
 
@@ -38,10 +35,7 @@ async def get_issue_data(
 
 
 async def get_issue_events(
-    workspace_id: str,
-    repo_id: int,
-    issue_number: int,
-    zenhub_token: str
+    workspace_id: str, repo_id: int, issue_number: int, zenhub_token: str
 ) -> list[dict]:
     """Fetch issue events from Zenhub API.
 

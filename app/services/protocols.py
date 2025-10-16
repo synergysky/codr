@@ -1,4 +1,5 @@
 """Protocols (interfaces) for dependency inversion."""
+
 from typing import Protocol
 
 

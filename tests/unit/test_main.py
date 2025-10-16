@@ -1,4 +1,5 @@
 """Unit tests for main FastAPI application."""
+
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -14,6 +15,7 @@ def test_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setenv("WEBHOOK_TOKEN", "test_webhook_secret")
 
     from app.main import app
+
     return TestClient(app)
 
 
@@ -46,39 +48,31 @@ class TestWebhookEndpoint:
 
     def test_webhook_unauthorized_without_token(self, test_client: TestClient) -> None:
         """Test webhook rejects requests without valid token."""
-        response = test_client.post(
-            "/webhook/zenhub",
-            json={"type": "test"}
-        )
+        response = test_client.post("/webhook/zenhub", json={"type": "test"})
 
         assert response.status_code == 401
         assert response.json()["detail"] == "unauthorized"
 
     def test_webhook_accepts_token_in_header(
-        self,
-        test_client: TestClient,
-        sample_zenhub_payload: dict[str, Any]
+        self, test_client: TestClient, sample_zenhub_payload: dict[str, Any]
     ) -> None:
         """Test webhook accepts token in header."""
         with patch("app.github_client.repository_dispatch", new_callable=AsyncMock):
             response = test_client.post(
                 "/webhook/zenhub",
                 json=sample_zenhub_payload,
-                headers={"x-webhook-token": "test_webhook_secret"}
+                headers={"x-webhook-token": "test_webhook_secret"},
             )
 
         assert response.status_code == 200
 
     def test_webhook_accepts_token_in_query(
-        self,
-        test_client: TestClient,
-        sample_zenhub_payload: dict[str, Any]
+        self, test_client: TestClient, sample_zenhub_payload: dict[str, Any]
     ) -> None:
         """Test webhook accepts token in query parameter."""
         with patch("app.github_client.repository_dispatch", new_callable=AsyncMock):
             response = test_client.post(
-                "/webhook/zenhub?token=test_webhook_secret",
-                json=sample_zenhub_payload
+                "/webhook/zenhub?token=test_webhook_secret", json=sample_zenhub_payload
             )
 
         assert response.status_code == 200
@@ -88,7 +82,7 @@ class TestWebhookEndpoint:
         response = test_client.post(
             "/webhook/zenhub?token=test_webhook_secret",
             data="invalid=data=with=extra=equals",
-            headers={"content-type": "application/x-www-form-urlencoded"}
+            headers={"content-type": "application/x-www-form-urlencoded"},
         )
 
         # Should still parse (parse_qs is lenient), but may fail later
@@ -96,15 +90,14 @@ class TestWebhookEndpoint:
         assert response.status_code in [200, 400, 500]
 
     def test_webhook_dispatches_to_all_repos(
-        self,
-        test_client: TestClient,
-        sample_zenhub_payload: dict[str, Any]
+        self, test_client: TestClient, sample_zenhub_payload: dict[str, Any]
     ) -> None:
         """Test webhook dispatches events to all configured repos."""
-        with patch("app.github_client.repository_dispatch", new_callable=AsyncMock) as mock_dispatch:
+        with patch(
+            "app.github_client.repository_dispatch", new_callable=AsyncMock
+        ) as mock_dispatch:
             response = test_client.post(
-                "/webhook/zenhub?token=test_webhook_secret",
-                json=sample_zenhub_payload
+                "/webhook/zenhub?token=test_webhook_secret", json=sample_zenhub_payload
             )
 
         assert response.status_code == 200
@@ -116,17 +109,16 @@ class TestWebhookEndpoint:
         assert mock_dispatch.call_count == 2
 
     def test_webhook_handles_dispatch_failure(
-        self,
-        test_client: TestClient,
-        sample_zenhub_payload: dict[str, Any]
+        self, test_client: TestClient, sample_zenhub_payload: dict[str, Any]
     ) -> None:
         """Test webhook handles dispatch failures gracefully."""
-        with patch("app.github_client.repository_dispatch", new_callable=AsyncMock) as mock_dispatch:
+        with patch(
+            "app.github_client.repository_dispatch", new_callable=AsyncMock
+        ) as mock_dispatch:
             mock_dispatch.side_effect = Exception("API error")
 
             response = test_client.post(
-                "/webhook/zenhub?token=test_webhook_secret",
-                json=sample_zenhub_payload
+                "/webhook/zenhub?token=test_webhook_secret", json=sample_zenhub_payload
             )
 
         assert response.status_code == 200
@@ -138,7 +130,9 @@ class TestWebhookEndpoint:
     def test_webhook_with_form_data(self, test_client: TestClient) -> None:
         """Test webhook accepts form-encoded data from Zenhub."""
         with patch("app.github_client.repository_dispatch", new_callable=AsyncMock):
-            with patch("app.github_client.get_issue_details", new_callable=AsyncMock) as mock_get_issue:
+            with patch(
+                "app.github_client.get_issue_details", new_callable=AsyncMock
+            ) as mock_get_issue:
                 mock_get_issue.return_value = {
                     "title": "Test Issue",
                     "body": "Description",
@@ -146,13 +140,13 @@ class TestWebhookEndpoint:
                     "state": "open",
                     "html_url": "https://github.com/org/repo/issues/1",
                     "assignees": [],
-                    "milestone": None
+                    "milestone": None,
                 }
 
                 response = test_client.post(
                     "/webhook/zenhub?token=test_webhook_secret",
                     data="type=issue_transfer&organization=testorg&repo=repo1&issue_number=1&to_pipeline_name=In Progress",
-                    headers={"content-type": "application/x-www-form-urlencoded"}
+                    headers={"content-type": "application/x-www-form-urlencoded"},
                 )
 
         assert response.status_code == 200
@@ -164,7 +158,7 @@ class TestWebhookEndpoint:
         response = test_client.post(
             "/webhook/zenhub?token=test_webhook_secret",
             data=b"",
-            headers={"content-type": "application/x-www-form-urlencoded"}
+            headers={"content-type": "application/x-www-form-urlencoded"},
         )
 
         assert response.status_code == 200

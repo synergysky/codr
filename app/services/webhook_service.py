@@ -1,4 +1,5 @@
 """Webhook processing service."""
+
 import logging
 from collections.abc import Sequence
 

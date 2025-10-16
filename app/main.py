@@ -27,18 +27,16 @@ def get_webhook_service(settings: Settings = Depends(get_settings)) -> WebhookSe
     from .services.protocols import IssueEnricher
 
     enrichers: Sequence[IssueEnricher] = [
-        GitHubEnricher(
-            github_client=github_client,
-            github_token=settings.GITHUB_TOKEN
-        ),
+        GitHubEnricher(github_client=github_client, github_token=settings.GITHUB_TOKEN),
         ZenhubEnricher(
             zenhub_client=zenhub_client,
             github_client=github_client,
             github_token=settings.GITHUB_TOKEN,
-            zenhub_token=settings.ZENHUB_TOKEN
-        )
+            zenhub_token=settings.ZENHUB_TOKEN,
+        ),
     ]
     return WebhookService(enrichers=enrichers)
+
 
 @app.get("/health")
 async def health(settings: Settings = Depends(get_settings)) -> dict[str, object]:
@@ -49,11 +47,12 @@ async def health(settings: Settings = Depends(get_settings)) -> dict[str, object
         "workspaces": settings.get_workspace_ids(),
     }
 
+
 @app.post("/webhook/zenhub")
 async def zenhub_webhook(
     request: Request,
     settings: Settings = Depends(get_settings),
-    webhook_service: WebhookService = Depends(get_webhook_service)
+    webhook_service: WebhookService = Depends(get_webhook_service),
 ) -> dict[str, object]:
     """
     Receives Zenhub webhook events and dispatches to configured GitHub repos.
@@ -76,7 +75,7 @@ async def zenhub_webhook(
         return {"ok": True, "message": "pong"}
 
     try:
-        form_data = parse_qs(body.decode('utf-8'))
+        form_data = parse_qs(body.decode("utf-8"))
         payload = {k: v[0] if len(v) == 1 else v for k, v in form_data.items()}
     except Exception as e:
         logger.error(f"Failed to parse form data: {e}")
@@ -100,9 +99,11 @@ async def zenhub_webhook(
         owner, repo = repo_full.split("/", 1)
         try:
             await github_client.repository_dispatch(
-                owner, repo, settings.DISPATCH_EVENT,
+                owner,
+                repo,
+                settings.DISPATCH_EVENT,
                 {"zenhub": enriched_payload},
-                settings.GITHUB_TOKEN
+                settings.GITHUB_TOKEN,
             )
             results.append({"repo": repo_full, "status": "dispatched"})
             logger.info(f"Dispatched to {repo_full}")

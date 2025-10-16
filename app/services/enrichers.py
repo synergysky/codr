@@ -1,4 +1,5 @@
 """Issue data enrichers."""
+
 import logging
 from typing import Any
 
@@ -32,9 +33,9 @@ class GitHubEnricher:
         Returns:
             Payload with 'github_issue' key added
         """
-        owner = payload.get('organization')
-        repo = payload.get('repo')
-        issue_number = payload.get('issue_number')
+        owner = payload.get("organization")
+        repo = payload.get("repo")
+        issue_number = payload.get("issue_number")
 
         # Skip if required data is missing
         if not all([owner, repo, issue_number]):
@@ -48,25 +49,26 @@ class GitHubEnricher:
 
         try:
             issue_data = await self.github_client.get_issue_details(
-                owner_str,
-                repo_str,
-                int(issue_num_str),
-                self.github_token
+                owner_str, repo_str, int(issue_num_str), self.github_token
             )
 
             # Format and add to payload
             enriched = payload.copy()
-            enriched['github_issue'] = {
-                'title': issue_data.get('title'),
-                'body': issue_data.get('body'),
-                'labels': [label['name'] for label in issue_data.get('labels', [])],
-                'state': issue_data.get('state'),
-                'html_url': issue_data.get('html_url'),
-                'assignees': [a['login'] for a in issue_data.get('assignees', [])],
-                'milestone': issue_data.get('milestone', {}).get('title') if issue_data.get('milestone') else None,
+            enriched["github_issue"] = {
+                "title": issue_data.get("title"),
+                "body": issue_data.get("body"),
+                "labels": [label["name"] for label in issue_data.get("labels", [])],
+                "state": issue_data.get("state"),
+                "html_url": issue_data.get("html_url"),
+                "assignees": [a["login"] for a in issue_data.get("assignees", [])],
+                "milestone": issue_data.get("milestone", {}).get("title")
+                if issue_data.get("milestone")
+                else None,
             }
 
-            logger.info(f"Enriched with GitHub data: {len(enriched['github_issue']['labels'])} labels")
+            logger.info(
+                f"Enriched with GitHub data: {len(enriched['github_issue']['labels'])} labels"
+            )
             return enriched
 
         except Exception as e:
@@ -83,11 +85,7 @@ class ZenhubEnricher:
     """
 
     def __init__(
-        self,
-        zenhub_client: Any,
-        github_client: Any,
-        github_token: str,
-        zenhub_token: str | None
+        self, zenhub_client: Any, github_client: Any, github_token: str, zenhub_token: str | None
     ):
         """Initialize with Zenhub and GitHub clients.
 
@@ -116,10 +114,10 @@ class ZenhubEnricher:
             logger.debug("Skipping Zenhub enrichment: no token configured")
             return payload
 
-        owner = payload.get('organization')
-        repo = payload.get('repo')
-        issue_number = payload.get('issue_number')
-        workspace_id = payload.get('workspace_id')
+        owner = payload.get("organization")
+        repo = payload.get("repo")
+        issue_number = payload.get("issue_number")
+        workspace_id = payload.get("workspace_id")
 
         # Skip if required data is missing
         if not all([owner, repo, issue_number, workspace_id]):
@@ -134,25 +132,27 @@ class ZenhubEnricher:
 
         try:
             # Get GitHub repo ID
-            repo_id = await self.github_client.get_repository_id(owner_str, repo_str, self.github_token)
+            repo_id = await self.github_client.get_repository_id(
+                owner_str, repo_str, self.github_token
+            )
 
             # Get Zenhub issue data
             zenhub_data = await self.zenhub_client.get_issue_data(
-                workspace_id_str,
-                repo_id,
-                int(issue_num_str)
+                workspace_id_str, repo_id, int(issue_num_str)
             )
 
             # Format and add to payload
             enriched = payload.copy()
-            enriched['zenhub_issue'] = {
-                'estimate': zenhub_data.get('estimate', {}).get('value'),
-                'pipeline': zenhub_data.get('pipeline', {}).get('name'),
-                'is_epic': zenhub_data.get('is_epic', False),
-                'epic': zenhub_data.get('epic'),
+            enriched["zenhub_issue"] = {
+                "estimate": zenhub_data.get("estimate", {}).get("value"),
+                "pipeline": zenhub_data.get("pipeline", {}).get("name"),
+                "is_epic": zenhub_data.get("is_epic", False),
+                "epic": zenhub_data.get("epic"),
             }
 
-            logger.info(f"Enriched with Zenhub data: estimate={enriched['zenhub_issue']['estimate']}")
+            logger.info(
+                f"Enriched with Zenhub data: estimate={enriched['zenhub_issue']['estimate']}"
+            )
             return enriched
 
         except Exception as e:

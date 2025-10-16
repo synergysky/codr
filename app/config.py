@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     GITHUB_REPOS=org1/repo1,org2/repo2
     ZENHUB_WORKSPACE_IDS=workspace1,workspace2
     """
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -24,18 +25,16 @@ class Settings(BaseSettings):
     GITHUB_TOKEN: str = Field(..., description="GitHub PAT or App installation token")
     GITHUB_REPOS: str = Field(
         default="",
-        description="Comma-separated list of repos (owner/repo format), e.g. 'myorg/repo1,myorg/repo2'"
+        description="Comma-separated list of repos (owner/repo format), e.g. 'myorg/repo1,myorg/repo2'",
     )
 
     # Zenhub configuration
     ZENHUB_TOKEN: str | None = Field(default=None, description="Zenhub API token (for direct mode)")
     ZENHUB_WORKSPACE_IDS: str = Field(
-        default="",
-        description="Comma-separated Zenhub workspace IDs to monitor"
+        default="", description="Comma-separated Zenhub workspace IDs to monitor"
     )
     ZENHUB_PIPELINE_NAME: str = Field(
-        default="In Progress",
-        description="Exact pipeline name in Zenhub that triggers automation"
+        default="In Progress", description="Exact pipeline name in Zenhub that triggers automation"
     )
 
     # Webhook security
@@ -43,8 +42,7 @@ class Settings(BaseSettings):
 
     # Dispatch event type
     DISPATCH_EVENT: str = Field(
-        default="zenhub_in_progress",
-        description="GitHub repository_dispatch event type"
+        default="zenhub_in_progress", description="GitHub repository_dispatch event type"
     )
 
     # Server
