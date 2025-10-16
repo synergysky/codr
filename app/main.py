@@ -1,5 +1,5 @@
-import json
 import logging
+from urllib.parse import parse_qs
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 
@@ -37,20 +37,23 @@ async def zenhub_webhook(request: Request, settings: Settings = Depends(get_sett
         logger.warning("Unauthorized webhook attempt")
         raise HTTPException(status_code=401, detail="unauthorized")
 
-    # Parse JSON payload (handle empty body for ping events)
+    # Parse payload (Zenhub sends form-encoded data, not JSON)
     body = await request.body()
-    logger.info(f"Received body (length={len(body)}): {body[:200]}")  # Log first 200 bytes
     
     if not body:
         logger.info("Received webhook ping (empty body)")
         return {"ok": True, "message": "pong"}
     
+    # Parse form data
     try:
-        payload = json.loads(body.decode('utf-8') if isinstance(body, bytes) else body)
+        # Decode form data
+        form_data = parse_qs(body.decode('utf-8'))
+        # Convert from {'key': ['value']} to {'key': 'value'}
+        payload = {k: v[0] if len(v) == 1 else v for k, v in form_data.items()}
     except Exception as e:
-        logger.error(f"Invalid JSON payload: {e}")
+        logger.error(f"Failed to parse form data: {e}")
         logger.error(f"Body content: {body}")
-        raise HTTPException(status_code=400, detail="invalid json")
+        raise HTTPException(status_code=400, detail="invalid payload")
 
     logger.info(f"Received Zenhub webhook: {payload.get('type', 'unknown')}")
     logger.info(f"Full payload: {payload}")
