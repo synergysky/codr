@@ -1,6 +1,7 @@
 """Shared test fixtures and configuration."""
-import pytest
 from typing import Any
+
+import pytest
 
 
 @pytest.fixture

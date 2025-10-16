@@ -1,8 +1,9 @@
 """Unit tests for main FastAPI application."""
+from typing import Any
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, patch
-from typing import Any
 
 
 @pytest.fixture
@@ -11,7 +12,7 @@ def test_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setenv("GITHUB_TOKEN", "test_token")
     monkeypatch.setenv("GITHUB_REPOS", "testorg/repo1,testorg/repo2")
     monkeypatch.setenv("WEBHOOK_TOKEN", "test_webhook_secret")
-    
+
     from app.main import app
     return TestClient(app)
 
@@ -22,7 +23,7 @@ class TestHealthEndpoint:
     def test_health_returns_ok(self, test_client: TestClient) -> None:
         """Test health endpoint returns 200 OK."""
         response = test_client.get("/health")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
@@ -33,7 +34,7 @@ class TestHealthEndpoint:
     def test_health_includes_config(self, test_client: TestClient) -> None:
         """Test health endpoint includes configuration."""
         response = test_client.get("/health")
-        
+
         data = response.json()
         assert data["mode"] == "relay"
         assert "testorg/repo1" in data["repos"]
@@ -49,7 +50,7 @@ class TestWebhookEndpoint:
             "/webhook/zenhub",
             json={"type": "test"}
         )
-        
+
         assert response.status_code == 401
         assert response.json()["detail"] == "unauthorized"
 
@@ -65,7 +66,7 @@ class TestWebhookEndpoint:
                 json=sample_zenhub_payload,
                 headers={"x-webhook-token": "test_webhook_secret"}
             )
-        
+
         assert response.status_code == 200
 
     def test_webhook_accepts_token_in_query(
@@ -79,7 +80,7 @@ class TestWebhookEndpoint:
                 "/webhook/zenhub?token=test_webhook_secret",
                 json=sample_zenhub_payload
             )
-        
+
         assert response.status_code == 200
 
     def test_webhook_rejects_invalid_json(self, test_client: TestClient) -> None:
@@ -89,7 +90,7 @@ class TestWebhookEndpoint:
             data="not json",
             headers={"content-type": "application/json"}
         )
-        
+
         assert response.status_code == 400
         assert "invalid json" in response.json()["detail"]
 
@@ -104,7 +105,7 @@ class TestWebhookEndpoint:
                 "/webhook/zenhub?token=test_webhook_secret",
                 json=sample_zenhub_payload
             )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["ok"] is True
@@ -121,12 +122,12 @@ class TestWebhookEndpoint:
         """Test webhook handles dispatch failures gracefully."""
         with patch("app.main.repository_dispatch", new_callable=AsyncMock) as mock_dispatch:
             mock_dispatch.side_effect = Exception("API error")
-            
+
             response = test_client.post(
                 "/webhook/zenhub?token=test_webhook_secret",
                 json=sample_zenhub_payload
             )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["ok"] is True

@@ -9,14 +9,14 @@ async def repository_dispatch(
     github_token: str
 ) -> None:
     """Send repository_dispatch event to GitHub.
-    
+
     Args:
         owner: Repository owner (org or user)
         repo: Repository name
         event_type: Custom event type for workflow trigger
         client_payload: Payload data to send
         github_token: GitHub authentication token
-        
+
     Raises:
         RuntimeError: If github_token is not provided
         httpx.HTTPStatusError: If GitHub API returns an error

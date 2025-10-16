@@ -1,7 +1,9 @@
-from fastapi import FastAPI, Request, HTTPException, Depends
+import logging
+
+from fastapi import Depends, FastAPI, HTTPException, Request
+
 from .config import Settings, get_settings
 from .github_client import repository_dispatch
-import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -9,7 +11,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Zenhub → GitHub Automation", version="0.1.0")
 
 @app.get("/health")
-async def health(settings: Settings = Depends(get_settings)):
+async def health(settings: Settings = Depends(get_settings)) -> dict[str, object]:
     return {
         "status": "ok",
         "mode": settings.MODE,
@@ -18,10 +20,10 @@ async def health(settings: Settings = Depends(get_settings)):
     }
 
 @app.post("/webhook/zenhub")
-async def zenhub_webhook(request: Request, settings: Settings = Depends(get_settings)):
+async def zenhub_webhook(request: Request, settings: Settings = Depends(get_settings)) -> dict[str, object]:
     """
     Receives Zenhub webhook events and dispatches to configured GitHub repos.
-    
+
     Expected flow:
     1. Validate webhook token
     2. Parse Zenhub payload
@@ -44,7 +46,7 @@ async def zenhub_webhook(request: Request, settings: Settings = Depends(get_sett
 
     # TODO: Filter for specific event types (e.g., issue.transfer, pipeline move)
     # For now, forward all events to repos
-    
+
     repos = settings.get_repos()
     if not repos:
         raise HTTPException(status_code=500, detail="No repos configured")

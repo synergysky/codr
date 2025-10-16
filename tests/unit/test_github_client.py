@@ -1,6 +1,8 @@
 """Unit tests for GitHub client module."""
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
+
 from app.github_client import repository_dispatch
 
 
@@ -12,10 +14,10 @@ class TestRepositoryDispatch:
         """Test successful repository_dispatch call."""
         mock_response = AsyncMock()
         mock_response.raise_for_status = AsyncMock()
-        
+
         mock_client = AsyncMock()
         mock_client.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
-        
+
         with patch("app.github_client.httpx.AsyncClient", return_value=mock_client):
             await repository_dispatch(
                 owner="testorg",
@@ -24,7 +26,7 @@ class TestRepositoryDispatch:
                 client_payload={"test": "data"},
                 github_token="test_token"
             )
-        
+
         mock_client.__aenter__.return_value.post.assert_called_once()
         call_args = mock_client.__aenter__.return_value.post.call_args
         assert call_args[1]["json"]["event_type"] == "test_event"
