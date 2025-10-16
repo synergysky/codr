@@ -112,22 +112,28 @@ class TestPRService:
         mock_github_client.create_pull_request.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_skips_pr_without_assignees(
+    async def test_creates_pr_without_assignees(
         self, pr_service: PRService, mock_github_client: AsyncMock
     ) -> None:
-        """Test that PR is not created if issue has no assignees."""
+        """Test that PR is created even if issue has no assignees."""
         payload = {
             "type": "issue.transfer",
             "to_pipeline_name": "In Progress",
             "issue_number": "123",
-            "github_issue": {"title": "Test", "assignees": []},
+            "github_issue": {
+                "title": "Test Issue Without Assignees",
+                "assignees": [],
+                "html_url": "https://github.com/testorg/testrepo/issues/123",
+            },
         }
 
         result = await pr_service.handle_issue_moved(payload, "testorg", "testrepo")
 
-        assert result is None
-        mock_github_client.create_branch.assert_not_called()
-        mock_github_client.create_pull_request.assert_not_called()
+        assert result is not None
+        assert result["branch"] == "feature/123-test-issue-without-assignees"
+        mock_github_client.create_branch.assert_called_once()
+        mock_github_client.create_file.assert_called_once()
+        mock_github_client.create_pull_request.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_handles_api_errors_gracefully(

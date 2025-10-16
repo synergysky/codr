@@ -62,13 +62,6 @@ class PRService:
             )
             return False
 
-        # Check if issue has assignees
-        github_issue = payload.get("github_issue", {})
-        assignees = github_issue.get("assignees", [])
-        if not assignees:
-            logger.info("Skipping PR creation: no assignees")
-            return False
-
         logger.info("✅ All conditions met for PR creation!")
         return True
 
