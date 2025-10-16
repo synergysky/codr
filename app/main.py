@@ -1,3 +1,4 @@
+import json
 import logging
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -43,7 +44,7 @@ async def zenhub_webhook(request: Request, settings: Settings = Depends(get_sett
         return {"ok": True, "message": "pong"}
     
     try:
-        payload = await request.json()
+        payload = json.loads(body)
     except Exception as e:
         logger.error(f"Invalid JSON payload: {e}")
         raise HTTPException(status_code=400, detail="invalid json")
