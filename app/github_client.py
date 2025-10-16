@@ -184,6 +184,57 @@ async def create_pull_request(
         return resp.json()  # type: ignore[no-any-return]
 
 
+async def create_file(
+    owner: str,
+    repo: str,
+    path: str,
+    content: str,
+    message: str,
+    branch: str,
+    github_token: str,
+) -> dict:
+    """Create a file in a repository via GitHub API.
+
+    Args:
+        owner: Repository owner (org or user)
+        repo: Repository name
+        path: Path where to create the file (e.g., ".github/ISSUE_123.md")
+        content: File content (will be base64 encoded)
+        message: Commit message
+        branch: Branch to commit to
+        github_token: GitHub authentication token
+
+    Returns:
+        Dict with commit data
+
+    Raises:
+        RuntimeError: If github_token is not provided
+        httpx.HTTPStatusError: If GitHub API returns an error
+    """
+    import base64
+
+    if not github_token:
+        raise RuntimeError("GITHUB_TOKEN is not set")
+
+    url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
+    headers = {
+        "Authorization": f"token {github_token}",
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "zenhub-bot/direct",
+    }
+
+    # Base64 encode the content
+    content_bytes = content.encode("utf-8")
+    content_b64 = base64.b64encode(content_bytes).decode("utf-8")
+
+    data = {"message": message, "content": content_b64, "branch": branch}
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.put(url, headers=headers, json=data)
+        resp.raise_for_status()
+        return resp.json()  # type: ignore[no-any-return]
+
+
 async def repository_dispatch(
     owner: str, repo: str, event_type: str, client_payload: dict, github_token: str
 ) -> None:
