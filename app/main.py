@@ -26,10 +26,14 @@ def get_webhook_service(settings: Settings = Depends(get_settings)) -> WebhookSe
     from typing import Sequence
     
     enrichers: Sequence[IssueEnricher] = [
-        GitHubEnricher(github_client=github_client),
+        GitHubEnricher(
+            github_client=github_client,
+            github_token=settings.GITHUB_TOKEN
+        ),
         ZenhubEnricher(
             zenhub_client=zenhub_client,
             github_client=github_client,
+            github_token=settings.GITHUB_TOKEN,
             zenhub_token=settings.ZENHUB_TOKEN
         )
     ]

@@ -121,7 +121,10 @@ class TestGitHubEnricher:
     @pytest.fixture
     def github_enricher(self, mock_github_client: AsyncMock) -> GitHubEnricher:
         """Create GitHubEnricher with mock client."""
-        return GitHubEnricher(github_client=mock_github_client)
+        return GitHubEnricher(
+            github_client=mock_github_client,
+            github_token="test_token"
+        )
 
     @pytest.mark.asyncio
     async def test_enrich_adds_github_issue_data(
@@ -140,7 +143,7 @@ class TestGitHubEnricher:
 
         # Verify GitHub API was called
         mock_github_client.get_issue_details.assert_called_once_with(
-            'testorg', 'testrepo', 123
+            'testorg', 'testrepo', 123, 'test_token'
         )
 
         # Verify enriched data
@@ -216,6 +219,7 @@ class TestZenhubEnricher:
         return ZenhubEnricher(
             zenhub_client=mock_zenhub_client,
             github_client=mock_github_client,
+            github_token="test_github_token",
             zenhub_token="test_token"
         )
 
@@ -237,7 +241,7 @@ class TestZenhubEnricher:
         result = await zenhub_enricher.enrich(payload)
 
         # Verify GitHub repo ID was fetched
-        mock_github_client.get_repository_id.assert_called_once_with('testorg', 'testrepo')
+        mock_github_client.get_repository_id.assert_called_once_with('testorg', 'testrepo', 'test_github_token')
 
         # Verify Zenhub API was called
         mock_zenhub_client.get_issue_data.assert_called_once_with(
@@ -255,6 +259,7 @@ class TestZenhubEnricher:
         enricher = ZenhubEnricher(
             zenhub_client=AsyncMock(),
             github_client=AsyncMock(),
+            github_token="test_github_token",
             zenhub_token=None
         )
         payload = {'organization': 'testorg'}

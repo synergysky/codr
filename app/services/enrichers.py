@@ -13,13 +13,15 @@ class GitHubEnricher:
     - Doesn't know about Zenhub or webhooks
     """
 
-    def __init__(self, github_client: Any):
+    def __init__(self, github_client: Any, github_token: str):
         """Initialize with GitHub client.
 
         Args:
             github_client: Client for GitHub API calls
+            github_token: GitHub authentication token
         """
         self.github_client = github_client
+        self.github_token = github_token
 
     async def enrich(self, payload: dict) -> dict:
         """Enrich payload with GitHub issue data.
@@ -48,7 +50,8 @@ class GitHubEnricher:
             issue_data = await self.github_client.get_issue_details(
                 owner_str,
                 repo_str,
-                int(issue_num_str)
+                int(issue_num_str),
+                self.github_token
             )
 
             # Format and add to payload
@@ -83,6 +86,7 @@ class ZenhubEnricher:
         self,
         zenhub_client: Any,
         github_client: Any,
+        github_token: str,
         zenhub_token: str | None
     ):
         """Initialize with Zenhub and GitHub clients.
@@ -90,10 +94,12 @@ class ZenhubEnricher:
         Args:
             zenhub_client: Client for Zenhub API calls
             github_client: Client for GitHub API calls (to get repo ID)
+            github_token: GitHub authentication token
             zenhub_token: Zenhub API token (optional)
         """
         self.zenhub_client = zenhub_client
         self.github_client = github_client
+        self.github_token = github_token
         self.zenhub_token = zenhub_token
 
     async def enrich(self, payload: dict) -> dict:
@@ -128,7 +134,7 @@ class ZenhubEnricher:
 
         try:
             # Get GitHub repo ID
-            repo_id = await self.github_client.get_repository_id(owner_str, repo_str)
+            repo_id = await self.github_client.get_repository_id(owner_str, repo_str, self.github_token)
 
             # Get Zenhub issue data
             zenhub_data = await self.zenhub_client.get_issue_data(
