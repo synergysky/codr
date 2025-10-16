@@ -47,6 +47,9 @@ class Settings(BaseSettings):
 
     # Server
     PORT: int = Field(default=8000, description="HTTP server port")
+    LOG_LEVEL: str = Field(
+        default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
+    )
 
     # Branch strategy
     BASE_BRANCH_DEFAULT: str = Field(default="develop", description="Default base branch")

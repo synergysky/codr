@@ -9,10 +9,28 @@ from .services.enrichers import GitHubEnricher, ZenhubEnricher
 from .services.pr_service import PRService
 from .services.webhook_service import WebhookService
 
-logging.basicConfig(level=logging.INFO)
+# Setup logging - will be configured on startup
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Zenhub → GitHub Automation", version="0.1.0")
+
+
+@app.on_event("startup")
+async def configure_logging() -> None:
+    """Configure logging level from settings on startup."""
+    try:
+        settings = get_settings()
+        log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
+        logging.basicConfig(
+            level=log_level,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            force=True,  # Override any existing config
+        )
+        logger.info(f"Logging configured with level: {settings.LOG_LEVEL.upper()}")
+    except Exception as e:
+        # Fallback to INFO if settings fail
+        logging.basicConfig(level=logging.INFO)
+        logger.warning(f"Failed to load LOG_LEVEL from settings, using INFO: {e}")
 
 
 # Dependency injection for WebhookService

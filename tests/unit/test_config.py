@@ -66,17 +66,42 @@ class TestSettings:
         assert settings.get_workspace_ids() == ["ws1", "ws2", "ws3"]
 
     def test_default_values(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Test default configuration values."""
+        """Test that default values are set correctly."""
         monkeypatch.setenv("GITHUB_TOKEN", "test_token")
         monkeypatch.setenv("GITHUB_REPOS", "org/repo")
         monkeypatch.setenv("WEBHOOK_TOKEN", "secret")
 
-        settings = Settings()
+        settings = Settings()  # type: ignore[call-arg]
 
         assert settings.MODE == "relay"
+        assert settings.PORT == 8000
+        assert settings.LOG_LEVEL == "INFO"
+        assert settings.ZENHUB_PIPELINE_NAME == "In Progress"
         assert settings.DISPATCH_EVENT == "zenhub_in_progress"
         assert settings.BASE_BRANCH_DEFAULT == "develop"
         assert settings.BASE_BRANCH_HOTFIX == "hotfix_branch"
         assert settings.HOTFIX_LABEL == "hotfix"
+
+    def test_log_level_configuration(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that LOG_LEVEL can be configured."""
+        monkeypatch.setenv("GITHUB_TOKEN", "test_token")
+        monkeypatch.setenv("GITHUB_REPOS", "org/repo")
+        monkeypatch.setenv("WEBHOOK_TOKEN", "secret")
+        monkeypatch.setenv("LOG_LEVEL", "DEBUG")
+
+        settings = Settings()  # type: ignore[call-arg]
+
+        assert settings.LOG_LEVEL == "DEBUG"
+
+    def test_log_level_defaults_to_info(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that LOG_LEVEL defaults to INFO if not set."""
+        monkeypatch.setenv("GITHUB_TOKEN", "test_token")
+        monkeypatch.setenv("GITHUB_REPOS", "org/repo")
+        monkeypatch.setenv("WEBHOOK_TOKEN", "secret")
+        # Don't set LOG_LEVEL
+
+        settings = Settings()  # type: ignore[call-arg]
+
+        assert settings.LOG_LEVEL == "INFO"
         assert settings.ZENHUB_PIPELINE_NAME == "In Progress"
         assert settings.PORT == 8000
