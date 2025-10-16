@@ -47,6 +47,7 @@ class TestSettings:
         monkeypatch.setenv("GITHUB_TOKEN", "test_token")
         monkeypatch.setenv("GITHUB_REPOS", "org/repo")
         monkeypatch.setenv("WEBHOOK_TOKEN", "secret")
+        monkeypatch.setenv("ZENHUB_WORKSPACE_IDS", "")
 
         settings = Settings()
 
