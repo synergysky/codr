@@ -40,9 +40,9 @@ class GitHubEnricher:
             return payload
 
         # Handle list values from parse_qs
-        owner_str = owner if isinstance(owner, str) else owner[0]
-        repo_str = repo if isinstance(repo, str) else repo[0]
-        issue_num_str = issue_number if isinstance(issue_number, str) else issue_number[0]
+        owner_str = owner if isinstance(owner, str) else owner[0]  # type: ignore[index]
+        repo_str = repo if isinstance(repo, str) else repo[0]  # type: ignore[index]
+        issue_num_str = issue_number if isinstance(issue_number, str) else issue_number[0]  # type: ignore[index]
 
         try:
             issue_data = await self.github_client.get_issue_details(
@@ -121,10 +121,10 @@ class ZenhubEnricher:
             return payload
 
         # Handle list values from parse_qs
-        owner_str = owner if isinstance(owner, str) else owner[0]
-        repo_str = repo if isinstance(repo, str) else repo[0]
-        issue_num_str = issue_number if isinstance(issue_number, str) else issue_number[0]
-        workspace_id_str = workspace_id if isinstance(workspace_id, str) else workspace_id[0]
+        owner_str = owner if isinstance(owner, str) else owner[0]  # type: ignore[index]
+        repo_str = repo if isinstance(repo, str) else repo[0]  # type: ignore[index]
+        issue_num_str = issue_number if isinstance(issue_number, str) else issue_number[0]  # type: ignore[index]
+        workspace_id_str = workspace_id if isinstance(workspace_id, str) else workspace_id[0]  # type: ignore[index]
 
         try:
             # Get GitHub repo ID

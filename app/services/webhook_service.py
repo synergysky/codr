@@ -1,6 +1,6 @@
 """Webhook processing service."""
 import logging
-from typing import Sequence
+from collections.abc import Sequence
 
 from .protocols import IssueEnricher
 

@@ -59,8 +59,8 @@ class TestWebhookEndpoint:
         test_client: TestClient,
         sample_zenhub_payload: dict[str, Any]
     ) -> None:
-        """Test webhook accepts token in x-webhook-token header."""
-        with patch("app.main.repository_dispatch", new_callable=AsyncMock):
+        """Test webhook accepts token in header."""
+        with patch("app.github_client.repository_dispatch", new_callable=AsyncMock):
             response = test_client.post(
                 "/webhook/zenhub",
                 json=sample_zenhub_payload,
@@ -75,7 +75,7 @@ class TestWebhookEndpoint:
         sample_zenhub_payload: dict[str, Any]
     ) -> None:
         """Test webhook accepts token in query parameter."""
-        with patch("app.main.repository_dispatch", new_callable=AsyncMock):
+        with patch("app.github_client.repository_dispatch", new_callable=AsyncMock):
             response = test_client.post(
                 "/webhook/zenhub?token=test_webhook_secret",
                 json=sample_zenhub_payload
@@ -101,7 +101,7 @@ class TestWebhookEndpoint:
         sample_zenhub_payload: dict[str, Any]
     ) -> None:
         """Test webhook dispatches events to all configured repos."""
-        with patch("app.main.repository_dispatch", new_callable=AsyncMock) as mock_dispatch:
+        with patch("app.github_client.repository_dispatch", new_callable=AsyncMock) as mock_dispatch:
             response = test_client.post(
                 "/webhook/zenhub?token=test_webhook_secret",
                 json=sample_zenhub_payload
@@ -121,7 +121,7 @@ class TestWebhookEndpoint:
         sample_zenhub_payload: dict[str, Any]
     ) -> None:
         """Test webhook handles dispatch failures gracefully."""
-        with patch("app.main.repository_dispatch", new_callable=AsyncMock) as mock_dispatch:
+        with patch("app.github_client.repository_dispatch", new_callable=AsyncMock) as mock_dispatch:
             mock_dispatch.side_effect = Exception("API error")
 
             response = test_client.post(
@@ -137,8 +137,8 @@ class TestWebhookEndpoint:
 
     def test_webhook_with_form_data(self, test_client: TestClient) -> None:
         """Test webhook accepts form-encoded data from Zenhub."""
-        with patch("app.main.repository_dispatch", new_callable=AsyncMock):
-            with patch("app.main.get_issue_details", new_callable=AsyncMock) as mock_get_issue:
+        with patch("app.github_client.repository_dispatch", new_callable=AsyncMock):
+            with patch("app.github_client.get_issue_details", new_callable=AsyncMock) as mock_get_issue:
                 mock_get_issue.return_value = {
                     "title": "Test Issue",
                     "body": "Description",
