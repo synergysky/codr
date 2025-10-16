@@ -6,6 +6,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from . import github_client, zenhub_client
 from .config import Settings, get_settings
 from .services.enrichers import GitHubEnricher, ZenhubEnricher
+from .services.pr_service import PRService
 from .services.webhook_service import WebhookService
 
 logging.basicConfig(level=logging.INFO)
@@ -38,6 +39,22 @@ def get_webhook_service(settings: Settings = Depends(get_settings)) -> WebhookSe
     return WebhookService(enrichers=enrichers)
 
 
+def get_pr_service(settings: Settings = Depends(get_settings)) -> PRService:
+    """Create PRService for handling branch/PR creation.
+
+    Args:
+        settings: Application settings
+
+    Returns:
+        Configured PRService instance
+    """
+    return PRService(
+        github_client=github_client,
+        github_token=settings.GITHUB_TOKEN,
+        base_branch="develop",  # TODO: Make configurable per repo
+    )
+
+
 @app.get("/health")
 async def health(settings: Settings = Depends(get_settings)) -> dict[str, object]:
     return {
@@ -53,6 +70,7 @@ async def zenhub_webhook(
     request: Request,
     settings: Settings = Depends(get_settings),
     webhook_service: WebhookService = Depends(get_webhook_service),
+    pr_service: PRService = Depends(get_pr_service),
 ) -> dict[str, object]:
     """
     Receives Zenhub webhook events and dispatches to configured GitHub repos.
@@ -86,6 +104,17 @@ async def zenhub_webhook(
 
     # Enrich payload using service layer
     enriched_payload = await webhook_service.process_webhook(payload)
+
+    # Handle automatic PR creation for issues moved to In Progress
+    pr_result = None
+    if enriched_payload.get("organization") and enriched_payload.get("repo"):
+        owner = enriched_payload["organization"]
+        repo_name = enriched_payload["repo"]
+        pr_result = await pr_service.handle_issue_moved(enriched_payload, owner, repo_name)
+        if pr_result:
+            logger.info(f"Created PR: {pr_result}")
+            # Add PR info to payload for GitHub Actions
+            enriched_payload["auto_pr"] = pr_result
 
     # TODO: Filter for specific event types (e.g., issue.transfer, pipeline move)
     # For now, forward all events to repos
