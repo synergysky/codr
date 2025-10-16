@@ -39,14 +39,17 @@ async def zenhub_webhook(request: Request, settings: Settings = Depends(get_sett
 
     # Parse JSON payload (handle empty body for ping events)
     body = await request.body()
+    logger.info(f"Received body (length={len(body)}): {body[:200]}")  # Log first 200 bytes
+    
     if not body:
         logger.info("Received webhook ping (empty body)")
         return {"ok": True, "message": "pong"}
     
     try:
-        payload = json.loads(body)
+        payload = json.loads(body.decode('utf-8') if isinstance(body, bytes) else body)
     except Exception as e:
         logger.error(f"Invalid JSON payload: {e}")
+        logger.error(f"Body content: {body}")
         raise HTTPException(status_code=400, detail="invalid json")
 
     logger.info(f"Received Zenhub webhook: {payload.get('type', 'unknown')}")
