@@ -1,13 +1,31 @@
 import httpx
-from .config import settings
 
 
-async def repository_dispatch(owner: str, repo: str, event_type: str, client_payload: dict) -> None:
-    if not settings.GITHUB_TOKEN:
+async def repository_dispatch(
+    owner: str,
+    repo: str,
+    event_type: str,
+    client_payload: dict,
+    github_token: str
+) -> None:
+    """Send repository_dispatch event to GitHub.
+
+    Args:
+        owner: Repository owner (org or user)
+        repo: Repository name
+        event_type: Custom event type for workflow trigger
+        client_payload: Payload data to send
+        github_token: GitHub authentication token
+
+    Raises:
+        RuntimeError: If github_token is not provided
+        httpx.HTTPStatusError: If GitHub API returns an error
+    """
+    if not github_token:
         raise RuntimeError("GITHUB_TOKEN is not set")
     url = f"https://api.github.com/repos/{owner}/{repo}/dispatches"
     headers = {
-        "Authorization": f"token {settings.GITHUB_TOKEN}",
+        "Authorization": f"token {github_token}",
         "Accept": "application/vnd.github+json",
         "User-Agent": "zenhub-bot/relay",
     }

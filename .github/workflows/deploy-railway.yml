@@ -1,0 +1,73 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy-dev:
+    name: Deploy to Development
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment:
+      name: development
+      url: ${{ vars.RAILWAY_URL }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+          railway up --detach
+
+      - name: Deployment summary
+        run: |
+          echo "### ✅ Deployed to Development! 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** Development" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** ${{ vars.RAILWAY_URL }}" >> $GITHUB_STEP_SUMMARY
+
+  deploy-prod:
+    name: Deploy to Production
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.RAILWAY_URL }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+          railway up --detach
+
+      - name: Deployment summary
+        run: |
+          echo "### ✅ Deployed to Production! 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** Production" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** ${{ vars.RAILWAY_URL }}" >> $GITHUB_STEP_SUMMARY
