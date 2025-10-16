@@ -153,14 +153,70 @@ class TestWebhookEndpoint:
         data = response.json()
         assert data["ok"] is True
 
-    def test_webhook_empty_body_returns_pong(self, test_client: TestClient) -> None:
-        """Test webhook returns pong for empty body (ping event)."""
+    @pytest.mark.asyncio
+    async def test_webhook_empty_body_returns_pong(self, test_client: TestClient) -> None:
+        """Test webhook with empty body returns pong."""
+        response = test_client.post("/webhook/zenhub?token=test_webhook_secret", content=b"")
+
+        assert response.status_code == 200
+        assert response.json()["message"] == "pong"
+
+
+class TestGitHubWebhook:
+    """Test GitHub webhook endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_github_webhook_assigned_event(self, test_client: TestClient) -> None:
+        """Test GitHub webhook for assigned event."""
+        import json
+
+        payload = {
+            "action": "assigned",
+            "issue": {
+                "number": 123,
+                "title": "Test issue",
+                "assignees": [{"login": "user1"}],
+            },
+            "repository": {
+                "name": "testrepo",
+                "owner": {"login": "testorg"},
+            },
+        }
+
         response = test_client.post(
-            "/webhook/zenhub?token=test_webhook_secret",
-            data=b"",
-            headers={"content-type": "application/x-www-form-urlencoded"},
+            "/webhook/github?token=test_webhook_secret",
+            content=json.dumps(payload).encode(),
+            headers={"x-github-event": "issues"},
         )
 
         assert response.status_code == 200
-        data = response.json()
-        assert data["message"] == "pong"
+        assert response.json()["ok"] is True
+
+    @pytest.mark.asyncio
+    async def test_github_webhook_unauthorized(self, test_client: TestClient) -> None:
+        """Test GitHub webhook rejects unauthorized requests."""
+        response = test_client.post("/webhook/github")
+
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_github_webhook_ignores_non_assigned_events(
+        self, test_client: TestClient
+    ) -> None:
+        """Test GitHub webhook ignores non-assigned events."""
+        import json
+
+        payload = {
+            "action": "opened",
+            "issue": {"number": 123},
+            "repository": {"name": "testrepo", "owner": {"login": "testorg"}},
+        }
+
+        response = test_client.post(
+            "/webhook/github?token=test_webhook_secret",
+            content=json.dumps(payload).encode(),
+            headers={"x-github-event": "issues"},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["message"] == "event ignored"

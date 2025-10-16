@@ -65,6 +65,85 @@ async def health(settings: Settings = Depends(get_settings)) -> dict[str, object
     }
 
 
+@app.post("/webhook/github")
+async def github_webhook(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+    webhook_service: WebhookService = Depends(get_webhook_service),
+    pr_service: PRService = Depends(get_pr_service),
+) -> dict[str, object]:
+    """
+    Receives GitHub webhook events (for assignee changes).
+
+    Handles:
+    - issues.assigned: When someone is assigned to an issue
+    """
+    # GitHub uses X-Hub-Signature for validation, but we'll use token for simplicity
+    token = request.headers.get("x-webhook-token") or request.query_params.get("token")
+    if token != settings.WEBHOOK_TOKEN:
+        logger.warning("Unauthorized GitHub webhook attempt")
+        raise HTTPException(status_code=401, detail="unauthorized")
+
+    body = await request.body()
+    if not body:
+        logger.info("Received GitHub webhook ping")
+        return {"ok": True, "message": "pong"}
+
+    try:
+        import json
+
+        payload = json.loads(body.decode("utf-8"))
+    except Exception as e:
+        logger.error(f"Failed to parse GitHub webhook: {e}")
+        raise HTTPException(status_code=400, detail="invalid payload")
+
+    event_type = request.headers.get("x-github-event", "unknown")
+    logger.info(f"Received GitHub webhook: {event_type}")
+
+    # Only handle issues.assigned event
+    if event_type != "issues" or payload.get("action") != "assigned":
+        logger.debug(f"Ignoring GitHub event: {event_type}/{payload.get('action')}")
+        return {"ok": True, "message": "event ignored"}
+
+    # Extract issue info
+    issue = payload.get("issue", {})
+    repo = payload.get("repository", {})
+    owner = repo.get("owner", {}).get("login")
+    repo_name = repo.get("name")
+    issue_number = issue.get("number")
+
+    if not all([owner, repo_name, issue_number]):
+        logger.error("Missing required fields in GitHub webhook")
+        return {"ok": False, "error": "missing fields"}
+
+    logger.info(f"Issue #{issue_number} assigned in {owner}/{repo_name}")
+
+    # Enrich with Zenhub data to check pipeline
+    fake_zenhub_payload = {
+        "type": "github_assigned",
+        "organization": owner,
+        "repo": repo_name,
+        "issue_number": str(issue_number),
+        "workspace_id": settings.get_workspace_ids()[0] if settings.get_workspace_ids() else "",
+    }
+
+    enriched = await webhook_service.process_webhook(fake_zenhub_payload)
+
+    # Check if issue is in "In Progress" pipeline
+    zenhub_issue = enriched.get("zenhub_issue", {})
+    pipeline_name = zenhub_issue.get("pipeline", {}).get("name", "")
+
+    if pipeline_name.lower() == "in progress":
+        logger.info("Issue in 'In Progress', attempting PR creation")
+        pr_result = await pr_service.handle_issue_moved(enriched, owner, repo_name)
+        if pr_result:
+            logger.info(f"Created PR: {pr_result}")
+            return {"ok": True, "pr": pr_result}
+
+    logger.info(f"Issue not in 'In Progress' (pipeline: {pipeline_name}), skipping PR")
+    return {"ok": True, "message": "not in progress"}
+
+
 @app.post("/webhook/zenhub")
 async def zenhub_webhook(
     request: Request,

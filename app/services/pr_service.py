@@ -35,17 +35,27 @@ class PRService:
         Returns:
             True if PR should be created
         """
-        # Check if it's an issue transfer event
-        # Zenhub might send "issue.transfer" or "issue_transfer"
+        # Check if it's an issue transfer event or GitHub assigned event
+        # Zenhub: "issue.transfer" or "issue_transfer"
+        # GitHub: "github_assigned"
         event_type = payload.get("type", "")
-        if event_type not in ["issue.transfer", "issue_transfer"]:
+        valid_events = ["issue.transfer", "issue_transfer", "github_assigned"]
+        if event_type not in valid_events:
             logger.info(
-                f"Skipping PR creation: event type is '{event_type}' (expected 'issue.transfer' or 'issue_transfer')"
+                f"Skipping PR creation: event type is '{event_type}' "
+                f"(expected one of: {', '.join(valid_events)})"
             )
             return False
 
-        # Check if issue is moved to "In Progress"
+        # Check if issue is in "In Progress"
+        # For Zenhub transfer events: use to_pipeline_name
+        # For GitHub assigned events: use zenhub_issue.pipeline.name
         to_pipeline = payload.get("to_pipeline_name", "")
+        if not to_pipeline:
+            # GitHub assigned event - check current pipeline from Zenhub data
+            zenhub_issue = payload.get("zenhub_issue", {})
+            to_pipeline = zenhub_issue.get("pipeline", {}).get("name", "")
+
         if to_pipeline.lower() != "in progress":
             logger.info(
                 f"Skipping PR creation: pipeline is '{to_pipeline}' (expected 'In Progress')"
